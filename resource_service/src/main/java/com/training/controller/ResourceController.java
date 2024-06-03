@@ -26,23 +26,15 @@ public class ResourceController {
     @Autowired
     ResourceService resourceService;
 
-/*    private final RestTemplate restTemplate;
-
-
-    public ResourceController(ResourceService resourceService, RestTemplate restTemplate) {
-        this.resourceService = resourceService;
-        this.restTemplate = restTemplate;
-    }*/
-
     @Transactional
     @PostMapping(path = "resources", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> uploadNewResource(@RequestParam MultipartFile file) {
         try {
-            Resource uploadedResource = resourceService.store(file);
             ResourceMetadata resourceMetadata = Mp3MetadataConvertor.convert(new ByteArrayInputStream(file.getBytes()));
+            Resource uploadedResource = resourceService.store(file);
 
             resourceMetadata.setResourceId(String.valueOf(uploadedResource.getId()));
-            // call song service to save the metadata
+            resourceService.storeSongMetadata(resourceMetadata);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(Collections.singletonMap("id", uploadedResource.getId().toString()));
         } catch (IOException | SAXException | TikaException e) {
@@ -58,7 +50,7 @@ public class ResourceController {
             if (resource == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
             }
-            // call the song service to get the metadata of id
+            resourceService.getSongMetadata(id);
             return ResponseEntity.status(HttpStatus.OK).body(resource);
         } catch (Exception e) {
             throw new RuntimeException("Exception while fetching the Resource. ");
